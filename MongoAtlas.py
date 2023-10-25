@@ -4,8 +4,9 @@ import csv
 import json
 import urllib.request
 from datetime import datetime
-from pymongo import MongoClient
+
 import pandas as pd
+from pymongo import MongoClient
 
 mongo_uri = "mongodb+srv://danieljagun:Daniel202@cluster.tokbwgs.mongodb.net/?retryWrites=true&w=majority"
 
