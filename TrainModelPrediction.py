@@ -4,6 +4,7 @@ import os
 import joblib
 import praw
 import time
+
 from textblob import TextBlob
 
 coins_list = ['Bitcoin', 'Ethereum', 'Solana', 'Cardano', 'Dogecoin']
@@ -17,6 +18,7 @@ for coin in coins_list:
     coin_model_path = os.path.join(model_folder, f'{coin.lower()}_model.joblib')
     coin_models[coin] = joblib.load(coin_model_path)
 
+
 def get_current_coin_data(coin_id):
     url = f'https://api.coingecko.com/api/v3/coins/{coin_id}?localization=false&tickers=false&market_data=true' \
           f'&community_data=false&developer_data=false&sparkline=false'
@@ -28,6 +30,7 @@ def get_current_coin_data(coin_id):
 
     data = response.json()
     return data
+
 
 def fetch_reddit_data(subreddit, category='hot', limit=10):
     user_agent = "Scraper 1.0 by /u/danieljagun"
@@ -57,6 +60,7 @@ def fetch_reddit_data(subreddit, category='hot', limit=10):
         total_posts.append(data_set)
 
     return total_posts
+
 
 for coin in coins_list:
     # Getting current coin data
