@@ -53,7 +53,10 @@ for subreddit in subreddits:
                 "Title": title,
                 "Timestamp": timestamp,
                 "Link": 'https://www.reddit.com' + post.permalink,
-                "Sentiment": sentiment_label
+                "Sentiment": sentiment_label,
+                "roberta_neg": scores_dict['roberta_neg'],
+                "roberta_neu": scores_dict['roberta_neu'],
+                "roberta_pos": scores_dict['roberta_pos']
             }
             total_posts.append(data_set)
 
