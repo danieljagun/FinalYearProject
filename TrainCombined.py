@@ -58,7 +58,7 @@ for coin in target_coins:
     print(f'Model Accuracy for {coin} on Test Set: {accuracy_combined}')
 
     print(f'Classification Report for {coin}:')
-    print(classification_report(y_test_combined, y_pred_combined))
+    print(classification_report(y_test_combined, y_pred_combined, zero_division=1))
 
     # Confusion Matrix
     print(f'Confusion Matrix for {coin}:')
