@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime, timedelta
+import sys
 
 import joblib
 import pandas as pd
@@ -8,20 +9,17 @@ import praw
 import requests
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# Get the current date
 current_date = datetime.now().strftime('%Y-%m-%d')
-
-# Calculate the date three days ago
 three_days_ago = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d')
-
 
 # Function to get sentiment from news using RoBERTa
 def get_news_sentiment_roberta(api_key_param, coin_name, tokenizer, model):
-    news_api_endpoint = f'https://newsapi.org/v2/everything?q={coin_name}&apiKey={api_key_param}&from={three_days_ago}&to={current_date}&language=en'
+    news_api_endpoint = 'https://newsapi.org/v2/everything?q={}&apiKey={}&from={}&to={}&language=en'.format(
+        coin_name, api_key_param, three_days_ago, current_date)
     response = requests.get(news_api_endpoint)
 
     if response.status_code != 200:
-        print(f"Error fetching news data for {coin_name}. Status code: {response.status_code}")
+        print("Error fetching news data for {}. Status code: {}".format(coin_name, response.status_code))
         return None
 
     data = response.json()
@@ -67,7 +65,7 @@ coin_models = {}
 
 # Load models for each coin
 for coin in coins_list:
-    coin_model_path = os.path.join(model_folder, f'{coin.lower()}_model.joblib')
+    coin_model_path = os.path.join(model_folder, '{}_model.joblib'.format(coin.lower()))
     coin_models[coin] = joblib.load(coin_model_path)
 
 # News API key (not used in this version)
@@ -76,12 +74,12 @@ news_api_key = '2f373d0c2b6e42cbaa303f67f2f2481b'  # Replace with your actual Ne
 
 # Function to fetch current coin data
 def get_current_coin_data(coin_id):
-    url = f'https://api.coingecko.com/api/v3/coins/{coin_id}?localization=false&tickers=false&market_data=true' \
-          f'&community_data=false&developer_data=false&sparkline=false'
+    url = 'https://api.coingecko.com/api/v3/coins/{}?localization=false&tickers=false&market_data=true' \
+          '&community_data=false&developer_data=false&sparkline=false'.format(coin_id)
     response = requests.get(url)
 
     if response.status_code != 200:
-        print(f"Error fetching data for {coin_id}. Status code: {response.status_code}")
+        print("Error fetching data for {}. Status code: {}".format(coin_id, response.status_code))
         return None
 
     data = response.json()
@@ -133,55 +131,61 @@ def fetch_reddit_data(subreddit, category='hot', limit=10):
     return total_posts
 
 
-# Loop through each coin
-for coin in coins_list:
-    # Getting current coin data
-    coin_data = get_current_coin_data(coin.lower())
+# Get the coin name from command line argument
+coin_name = sys.argv[1]
 
-    if coin_data is None:
-        continue
+# Ensure the provided coin name is in the coins_list
+if coin_name not in coins_list:
+    print("Invalid coin name: {}".format(coin_name))
+    exit(1)
 
-    # Getting recent posts
-    coin_reddit_data = fetch_reddit_data(subreddit=coin, category='hot', limit=10)
+# Getting current coin data
+coin_data = get_current_coin_data(coin_name.lower())
 
-    coin_reddit_df = pd.DataFrame(coin_reddit_data)
+if coin_data is None:
+    exit(1)
 
-    try:
-        new_coin_data = pd.DataFrame({
-            'Prices': [coin_data['market_data']['current_price']['usd']],
-            'MrkCap': [coin_data['market_data'].get('market_cap', {}).get('usd', None)],
-            'TolVol': [coin_data['market_data'].get('total_volume', {}).get('usd', None)],
-            'Count': [coin_reddit_df['Count'].mean()],
-            'Sentiment': [coin_reddit_df['Sentiment'].mean()]
-        })
+# Getting recent posts
+coin_reddit_data = fetch_reddit_data(subreddit=coin_name, category='hot', limit=10)
 
-        # Display individual columns with additional information
-        print(f"Current {coin} price: {new_coin_data['Prices'][0]}")
-        print(f"MrkCap: {new_coin_data['MrkCap'][0]}")
-        print(f"TolVol: {new_coin_data['TolVol'][0]}")
+coin_reddit_df = pd.DataFrame(coin_reddit_data)
 
-        # Display the "Overall Feeling of" line based on the news sentiment
-        overall_feeling = ''
-        if new_coin_data['Sentiment'][0] > 0:
-            overall_feeling = 'Happy'
-        elif new_coin_data['Sentiment'][0] < 0:
-            overall_feeling = 'Sad'
-        else:
-            overall_feeling = 'Neutral'
-        print(f"Overall Feeling of {coin}: {overall_feeling}")
+try:
+    new_coin_data = pd.DataFrame({
+        'Prices': [coin_data['market_data']['current_price']['usd']],
+        'MrkCap': [coin_data['market_data'].get('market_cap', {}).get('usd', None)],
+        'TolVol': [coin_data['market_data'].get('total_volume', {}).get('usd', None)],
+        'Count': [coin_reddit_df['Count'].mean()],
+        'Sentiment': [coin_reddit_df['Sentiment'].mean()]
+    })
 
-        # Making predictions using the model for the current coin
-        coin_prediction = coin_models[coin].predict(new_coin_data[['Prices', 'MrkCap', 'TolVol', 'Count', 'Sentiment']])
+    # Display individual columns with additional information
+    print("Current {} price: {}".format(coin_name, new_coin_data['Prices'][0]))
+    print("MrkCap: {}".format(new_coin_data['MrkCap'][0]))
+    print("TolVol: {}".format(new_coin_data['TolVol'][0]))
 
-        # Up or Down
-        coin_prediction_label = 'Up' if coin_prediction[0] == 1 else 'Down'
+    # Display the "Overall Feeling of" line based on the news sentiment
+    overall_feeling = ''
+    if new_coin_data['Sentiment'][0] > 0:
+        overall_feeling = 'Happy'
+    elif new_coin_data['Sentiment'][0] < 0:
+        overall_feeling = 'Sad'
+    else:
+        overall_feeling = 'Neutral'
+    print("Overall Feeling of {} from Current News Articles: {}".format(coin_name, overall_feeling))
 
-        print(f"The predicted price movement for {coin} is: {coin_prediction_label}")
-        print("\n" + "=" * 50 + "\n")
+    # Making predictions using the model for the current coin
+    coin_prediction = coin_models[coin_name].predict(new_coin_data[['Prices', 'MrkCap', 'TolVol', 'Count', 'Sentiment']])
 
-        time.sleep(2)
+    # Up or Down
+    coin_prediction_label = 'Up' if coin_prediction[0] == 1 else 'Down'
 
-    except KeyError as e:
-        print(f"KeyError in extracting data for {coin}: {e}")
-        print(f"Response structure: {coin_data}")
-        continue
+    print("The predicted price movement for {} is: {}".format(coin_name, coin_prediction_label))
+    print("\n" + "=" * 50 + "\n")
+
+    time.sleep(2)
+
+except KeyError as e:
+    print("KeyError in extracting data for {}: {}".format(coin_name, e))
+    print("Response structure: {}".format(coin_data))
+    exit(1)
