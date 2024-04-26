@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 
 
 def feature_engineering(crypto_data):
-    crypto_data = crypto_data.copy()  # Create a copy to avoid SettingWithCopyWarning
+    crypto_data = crypto_data.copy()  # Creating copy to avoid SettingWithCopyWarning
 
     crypto_data['Price_Change_Percent'] = crypto_data.groupby('Coin')['Prices'].pct_change() * 100
     crypto_data['Price_Up_or_Down'] = (crypto_data['Price_Change_Percent'] > 0).astype(int)
@@ -21,7 +21,6 @@ def feature_engineering(crypto_data):
     # Rolling Statistics
     crypto_data['Rolling_Mean'] = crypto_data.groupby('Coin')['Prices'].rolling(window=5).mean().reset_index(0,
                                                                                                              drop=True)
-
     # Interaction Terms
     crypto_data['Price_TolVol_Interact'] = crypto_data['Prices'] * crypto_data['TolVol']
 
@@ -85,6 +84,6 @@ def train_crypto_model(crypto_name):
 train_crypto_model('Bitcoin')
 train_crypto_model('Ethereum')
 train_crypto_model('Solana')
-train_crypto_model('XRP')
-train_crypto_model('Cardano')
 train_crypto_model('Dogecoin')
+train_crypto_model('Cardano')
+train_crypto_model('Avalanche')

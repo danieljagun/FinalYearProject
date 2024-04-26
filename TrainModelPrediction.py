@@ -12,6 +12,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 current_date = datetime.now().strftime('%Y-%m-%d')
 three_days_ago = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d')
 
+
 # Function to get sentiment from news using RoBERTa
 def get_news_sentiment_roberta(api_key_param, coin_name, tokenizer, model):
     news_api_endpoint = 'https://newsapi.org/v2/everything?q={}&apiKey={}&from={}&to={}&language=en'.format(
@@ -55,7 +56,7 @@ tokenizer = AutoTokenizer.from_pretrained("mrm8488/deberta-v3-ft-financial-news-
 model = AutoModelForSequenceClassification.from_pretrained("mrm8488/deberta-v3-ft-financial-news-sentiment-analysis")
 
 # Define the list of coins
-coins_list = ['Bitcoin', 'Ethereum', 'Solana', 'Cardano', 'Dogecoin']
+coins_list = ['bitcoin', 'ethereum', 'solana', 'dogecoin', 'cardano', 'avalanche']
 
 # Define the folder containing the models
 model_folder = 'combinedModels'
@@ -68,8 +69,16 @@ for coin in coins_list:
     coin_model_path = os.path.join(model_folder, '{}_model.joblib'.format(coin.lower()))
     coin_models[coin] = joblib.load(coin_model_path)
 
-# News API key (not used in this version)
-news_api_key = '2f373d0c2b6e42cbaa303f67f2f2481b'  # Replace with your actual News API key
+# News API key
+news_api_key = '2f373d0c2b6e42cbaa303f67f2f2481b'
+
+
+# Function to format number as currency
+def format_currency(value):
+    if value < 1:
+        return "${:,.4f}".format(value)
+    else:
+        return "${:,.2f}".format(value)
 
 
 # Function to fetch current coin data
@@ -132,11 +141,16 @@ def fetch_reddit_data(subreddit, category='hot', limit=10):
 
 
 # Get the coin name from command line argument
-coin_name = sys.argv[1]
+coin_name = sys.argv[1].lower()
+
 
 # Ensure the provided coin name is in the coins_list
+def capitalize_name(name):
+    return ' '.join(word.capitalize() for word in name.split())
+
+
 if coin_name not in coins_list:
-    print("Invalid coin name: {}".format(coin_name))
+    print("Invalid coin name: {}".format(capitalize_name(coin_name)))
     exit(1)
 
 # Getting current coin data
@@ -160,9 +174,9 @@ try:
     })
 
     # Display individual columns with additional information
-    print("Current {} price: {}".format(coin_name, new_coin_data['Prices'][0]))
-    print("MrkCap: {}".format(new_coin_data['MrkCap'][0]))
-    print("TolVol: {}".format(new_coin_data['TolVol'][0]))
+    print("Current {} price: {}".format(capitalize_name(coin_name), format_currency(new_coin_data['Prices'][0])))
+    # print("MrkCap: {}".format(format_currency(new_coin_data['MrkCap'][0])))
+    # print("TolVol: {}".format(format_currency(new_coin_data['TolVol'][0])))
 
     # Display the "Overall Feeling of" line based on the news sentiment
     overall_feeling = ''
@@ -172,15 +186,16 @@ try:
         overall_feeling = 'Sad'
     else:
         overall_feeling = 'Neutral'
-    print("Overall Feeling of {} from Current News Articles: {}".format(coin_name, overall_feeling))
+    print("Overall Feeling of {} from Current News Articles: {}".format(capitalize_name(coin_name), overall_feeling))
 
     # Making predictions using the model for the current coin
-    coin_prediction = coin_models[coin_name].predict(new_coin_data[['Prices', 'MrkCap', 'TolVol', 'Count', 'Sentiment']])
+    coin_prediction = coin_models[coin_name].predict(
+        new_coin_data[['Prices', 'MrkCap', 'TolVol', 'Count', 'Sentiment']])
 
     # Up or Down
     coin_prediction_label = 'Up' if coin_prediction[0] == 1 else 'Down'
 
-    print("The predicted price movement for {} is: {}".format(coin_name, coin_prediction_label))
+    print("The predicted price movement for {} is: {}".format(capitalize_name(coin_name), coin_prediction_label))
     print("\n" + "=" * 50 + "\n")
 
     time.sleep(2)

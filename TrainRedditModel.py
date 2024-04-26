@@ -54,7 +54,6 @@ def train_reddit_model(subreddit_name):
 train_reddit_model('Bitcoin')
 train_reddit_model('Ethereum')
 train_reddit_model('Solana')
-train_reddit_model('XRP')
-train_reddit_model('Cardano')
 train_reddit_model('Dogecoin')
-
+train_reddit_model('Cardano')
+train_reddit_model('Avalanche')
